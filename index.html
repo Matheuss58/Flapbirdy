@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird - 10 Fases</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <div id="game-board">
+            <div id="bird"></div>
+            <div id="score-display">0</div>
+            <div id="level-display">Fase 1</div>
+            <div id="game-over">GAME OVER<br><span>Pressione Espaço para reiniciar</span></div>
+            <div id="start-screen">FLAPPY BIRD<br><span>Pressione Espaço para começar</span></div>
+        </div>
+        <div id="phase-info">
+            <h2>Fases</h2>
+            <div class="phases-container">
+                <div class="phase" data-level="1" data-speed="3" data-gap="180">1</div>
+                <div class="phase" data-level="2" data-speed="3.5" data-gap="170">2</div>
+                <div class="phase" data-level="3" data-speed="4" data-gap="160">3</div>
+                <div class="phase" data-level="4" data-speed="4.5" data-gap="150">4</div>
+                <div class="phase" data-level="5" data-speed="5" data-gap="140">5</div>
+                <div class="phase" data-level="6" data-speed="5.5" data-gap="130">6</div>
+                <div class="phase" data-level="7" data-speed="6" data-gap="120">7</div>
+                <div class="phase" data-level="8" data-speed="6.5" data-gap="110">8</div>
+                <div class="phase" data-level="9" data-speed="7" data-gap="100">9</div>
+                <div class="phase" data-level="10" data-speed="8" data-gap="90">10</div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
