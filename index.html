@@ -2,36 +2,278 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flappy Bird - 10 Fases</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="game-container">
-        <div id="game-board">
-            <div id="bird"></div>
-            <div id="score-display">0</div>
-            <div id="level-display">Fase 1</div>
-            <div id="game-over">GAME OVER<br><span>Pressione Espaço para reiniciar</span></div>
-            <div id="start-screen">FLAPPY BIRD<br><span>Pressione Espaço para começar</span></div>
-        </div>
-        <div id="phase-info">
-            <h2>Fases</h2>
-            <div class="phases-container">
-                <div class="phase" data-level="1" data-speed="3" data-gap="180">1</div>
-                <div class="phase" data-level="2" data-speed="3.5" data-gap="170">2</div>
-                <div class="phase" data-level="3" data-speed="4" data-gap="160">3</div>
-                <div class="phase" data-level="4" data-speed="4.5" data-gap="150">4</div>
-                <div class="phase" data-level="5" data-speed="5" data-gap="140">5</div>
-                <div class="phase" data-level="6" data-speed="5.5" data-gap="130">6</div>
-                <div class="phase" data-level="7" data-speed="6" data-gap="120">7</div>
-                <div class="phase" data-level="8" data-speed="6.5" data-gap="110">8</div>
-                <div class="phase" data-level="9" data-speed="7" data-gap="100">9</div>
-                <div class="phase" data-level="10" data-speed="8" data-gap="90">10</div>
+    <div class="game-wrapper">
+        <header class="game-header">
+            <h1><i class="fas fa-dove"></i> FLAPPY BIRD 10 FASES</h1>
+            <div class="game-stats">
+                <div class="stat-box">
+                    <span class="stat-label">RECORDE</span>
+                    <span id="high-score-display" class="stat-value">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">FASE</span>
+                    <span id="current-phase-display" class="stat-value">1</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="game-container">
+            <div id="game-board">
+                <div id="background"></div>
+                <div id="bird">
+                    <div class="bird-body"></div>
+                    <div class="bird-eye"></div>
+                    <div class="bird-wing"></div>
+                    <div class="bird-beak"></div>
+                </div>
+                <div id="score-display">0</div>
+                <div id="level-display">FASE 1</div>
+                <div id="game-over" class="overlay-screen">
+                    <div class="overlay-content">
+                        <h2>GAME OVER</h2>
+                        <p class="final-score">Pontuação: <span id="final-score">0</span></p>
+                        <p class="high-score">Recorde: <span id="final-high-score">0</span></p>
+                        <div class="controls">
+                            <div class="control-item">
+                                <i class="fas fa-mobile-alt"></i>
+                                <span>Toque para pular</span>
+                            </div>
+                            <div class="control-item">
+                                <i class="fas fa-keyboard"></i>
+                                <span>Espaço para pular</span>
+                            </div>
+                        </div>
+                        <button id="restart-btn" class="btn-primary">
+                            <i class="fas fa-redo"></i> Jogar Novamente
+                        </button>
+                    </div>
+                </div>
+                <div id="start-screen" class="overlay-screen">
+                    <div class="overlay-content">
+                        <h2>FLAPPY BIRD</h2>
+                        <div class="instructions">
+                            <p>Evite os canos e avance pelas fases!</p>
+                            <div class="controls">
+                                <div class="control-item">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    <span>Toque para pular</span>
+                                </div>
+                                <div class="control-item">
+                                    <i class="fas fa-keyboard"></i>
+                                    <span>Espaço para pular</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="start-btn" class="btn-primary">
+                            <i class="fas fa-play"></i> Iniciar Jogo
+                        </button>
+                        <div class="phase-selector-mini">
+                            <span>Selecione a fase:</span>
+                            <select id="phase-select">
+                                <option value="1">Fase 1</option>
+                                <option value="2">Fase 2</option>
+                                <option value="3">Fase 3</option>
+                                <option value="4">Fase 4</option>
+                                <option value="5">Fase 5</option>
+                                <option value="6">Fase 6</option>
+                                <option value="7">Fase 7</option>
+                                <option value="8">Fase 8</option>
+                                <option value="9">Fase 9</option>
+                                <option value="10">Fase 10</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="pause-screen" class="overlay-screen">
+                    <div class="overlay-content">
+                        <h2>JOGO PAUSADO</h2>
+                        <button id="resume-btn" class="btn-primary">
+                            <i class="fas fa-play"></i> Continuar
+                        </button>
+                        <button id="restart-from-pause" class="btn-secondary">
+                            <i class="fas fa-redo"></i> Reiniciar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="phase-info">
+                <h2><i class="fas fa-layer-group"></i> FASES</h2>
+                <p class="phase-info-text">Cada fase aumenta a dificuldade!</p>
+                <div class="phases-container">
+                    <!-- Fases (mantidas como no original) -->
+                    <div class="phase" data-level="1" data-speed="3" data-gap="200" data-score="5">
+                        <div class="phase-number">1</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Iniciante</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 3</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 200px</span>
+                                <span><i class="fas fa-star"></i> Passar: 5 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="2" data-speed="3.5" data-gap="190" data-score="10">
+                        <div class="phase-number">2</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Fácil</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 3.5</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 190px</span>
+                                <span><i class="fas fa-star"></i> Passar: 10 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="3" data-speed="4" data-gap="180" data-score="15">
+                        <div class="phase-number">3</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Normal</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 4</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 180px</span>
+                                <span><i class="fas fa-star"></i> Passar: 15 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="4" data-speed="4.5" data-gap="170" data-score="20">
+                        <div class="phase-number">4</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Intermediário</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 4.5</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 170px</span>
+                                <span><i class="fas fa-star"></i> Passar: 20 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="5" data-speed="5" data-gap="160" data-score="25">
+                        <div class="phase-number">5</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Desafiador</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 5</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 160px</span>
+                                <span><i class="fas fa-star"></i> Passar: 25 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="6" data-speed="5.5" data-gap="150" data-score="30">
+                        <div class="phase-number">6</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Difícil</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 5.5</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 150px</span>
+                                <span><i class="fas fa-star"></i> Passar: 30 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="7" data-speed="6" data-gap="140" data-score="35">
+                        <div class="phase-number">7</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Muito Difícil</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 6</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 140px</span>
+                                <span><i class="fas fa-star"></i> Passar: 35 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="8" data-speed="6.5" data-gap="130" data-score="40">
+                        <div class="phase-number">8</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Expert</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 6.5</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 130px</span>
+                                <span><i class="fas fa-star"></i> Passar: 40 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="9" data-speed="7" data-gap="120" data-score="45">
+                        <div class="phase-number">9</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Mestre</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 7</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 120px</span>
+                                <span><i class="fas fa-star"></i> Passar: 45 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phase" data-level="10" data-speed="8" data-gap="110" data-score="50">
+                        <div class="phase-number">10</div>
+                        <div class="phase-details">
+                            <div class="phase-title">Impossível</div>
+                            <div class="phase-stats">
+                                <span><i class="fas fa-tachometer-alt"></i> Velocidade: 8</span>
+                                <span><i class="fas fa-arrows-alt-v"></i> Espaço: 110px</span>
+                                <span><i class="fas fa-star"></i> Passar: 50 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls-info">
+                    <h3><i class="fas fa-gamepad"></i> Controles</h3>
+                    <div class="controls-grid">
+                        <div class="control-grid-item">
+                            <div class="control-icon"><i class="fas fa-space-shuttle"></i></div>
+                            <div class="control-desc">Espaço / Toque</div>
+                            <div class="control-action">Pular</div>
+                        </div>
+                        <div class="control-grid-item">
+                            <div class="control-icon"><i class="fas fa-pause"></i></div>
+                            <div class="control-desc">Tecla P</div>
+                            <div class="control-action">Pausar</div>
+                        </div>
+                        <div class="control-grid-item">
+                            <div class="control-icon"><i class="fas fa-redo"></i></div>
+                            <div class="control-desc">Tecla R</div>
+                            <div class="control-action">Reiniciar</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+        
+        <footer class="game-footer">
+            <p>Flappy Bird 10 Fases - Desenvolvido com <i class="fas fa-heart"></i> para você!</p>
+            <div class="sound-controls">
+                <button id="sound-toggle" class="btn-sound">
+                    <i class="fas fa-volume-up"></i> Som: ON
+                </button>
+                <button id="music-toggle" class="btn-sound">
+                    <i class="fas fa-music"></i> Música: ON
+                </button>
+            </div>
+        </footer>
     </div>
+    
+    <!-- Efeitos sonoros -->
+    <audio id="jump-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-bird-flapping-1481.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="score-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="collision-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-retro-arcade-game-over-470.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="levelup-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-trumpet-2018.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="background-music" loop preload="auto">
+        <source src="https://assets.mixkit.co/music/preview/mixkit-game-show-suspense-waiting-667.mp3" type="audio/mpeg">
+    </audio>
+
     <script src="script.js"></script>
 </body>
 </html>

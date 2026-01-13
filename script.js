@@ -1,404 +1,299 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Configurações do jogo
-    const config = {
-        width: 400,
-        height: 600,
-        gravity: 0.5,
-        jumpForce: -8,
-        pipeWidth: 60,
-        pipeGap: 180,
-        pipeSpeed: 3,
-        levels: {
-            1: { scoreToPass: 5, speed: 3, gap: 180 },
-            2: { scoreToPass: 10, speed: 3.5, gap: 170 },
-            3: { scoreToPass: 15, speed: 4, gap: 160 },
-            4: { scoreToPass: 20, speed: 4.5, gap: 150 },
-            5: { scoreToPass: 25, speed: 5, gap: 140 },
-            6: { scoreToPass: 30, speed: 5.5, gap: 130 },
-            7: { scoreToPass: 35, speed: 6, gap: 120 },
-            8: { scoreToPass: 40, speed: 6.5, gap: 110 },
-            9: { scoreToPass: 45, speed: 7, gap: 100 },
-            10: { scoreToPass: 50, speed: 8, gap: 90 }
+document.addEventListener("DOMContentLoaded", () => {
+
+  /* ===================== CONFIG ===================== */
+  const LEVELS = {
+    1: { speed: 3, gap: 200, pass: 5 },
+    2: { speed: 3.5, gap: 190, pass: 10 },
+    3: { speed: 4, gap: 180, pass: 15 },
+    4: { speed: 4.5, gap: 170, pass: 20 },
+    5: { speed: 5, gap: 160, pass: 25 },
+    6: { speed: 5.5, gap: 150, pass: 30 },
+    7: { speed: 6, gap: 140, pass: 35 },
+    8: { speed: 6.5, gap: 130, pass: 40 },
+    9: { speed: 7, gap: 120, pass: 45 },
+    10:{ speed: 8, gap: 110, pass: 50 }
+  };
+
+  const GRAVITY = 2000;
+  const JUMP = -600;
+  const PIPE_WIDTH = 80;
+  const PIPE_INTERVAL = 1.6;
+
+  /* ===================== ELEMENTS ===================== */
+  const board = document.getElementById("game-board");
+  const birdEl = document.getElementById("bird");
+  const scoreEl = document.getElementById("score-display");
+  const levelEl = document.getElementById("level-display");
+
+  const startScreen = document.getElementById("start-screen");
+  const gameOverScreen = document.getElementById("game-over");
+  const pauseScreen = document.getElementById("pause-screen");
+
+  const highScoreEl = document.getElementById("high-score-display");
+  const finalScoreEl = document.getElementById("final-score");
+  const finalHighScoreEl = document.getElementById("final-high-score");
+
+  /* ===================== AUDIO ===================== */
+  const sounds = {
+    jump: document.getElementById("jump-sound"),
+    score: document.getElementById("score-sound"),
+    hit: document.getElementById("collision-sound"),
+    level: document.getElementById("levelup-sound"),
+    music: document.getElementById("background-music")
+  };
+
+  /* ===================== STATE ===================== */
+  const game = {
+    running: false,
+    paused: false,
+    level: 1,
+    score: 0,
+    highScore: Number(localStorage.getItem("flappyHigh") || 0),
+    lastTime: 0,
+    pipeTimer: 0
+  };
+
+  const bird = {
+    x: 80,
+    y: 0,
+    vy: 0,
+    w: 0,
+    h: 0
+  };
+
+  let pipes = [];
+
+  /* ===================== INIT ===================== */
+  function init() {
+    resize();
+    reset();
+
+    highScoreEl.textContent = game.highScore;
+
+    Object.values(sounds).forEach(a => a.load());
+
+    window.addEventListener("resize", resize);
+    document.addEventListener("keydown", onKey);
+
+    board.addEventListener("click", jump);
+    board.addEventListener("touchstart", e => {
+      e.preventDefault();
+      jump();
+    }, { passive: false });
+
+    document.getElementById("start-btn").onclick = jump;
+    document.getElementById("restart-btn").onclick = start;
+    document.getElementById("resume-btn").onclick = togglePause;
+    document.getElementById("restart-from-pause").onclick = start;
+  }
+
+  function resize() {
+    bird.w = birdEl.offsetWidth;
+    bird.h = birdEl.offsetHeight;
+    bird.y = board.clientHeight / 2;
+  }
+
+  /* ===================== GAME FLOW ===================== */
+  function start() {
+    reset();
+
+    startScreen.style.display = "none";
+    gameOverScreen.style.display = "none";
+    pauseScreen.style.display = "none";
+
+    game.running = true;
+    game.paused = false;
+    game.lastTime = performance.now(); // 🔑 evita engasgo
+
+    sounds.music.volume = 0.3;
+    sounds.music.play().catch(()=>{});
+
+    requestAnimationFrame(loop);
+  }
+
+  function reset() {
+    pipes.forEach(p => {
+      p.elTop.remove();
+      p.elBot.remove();
+    });
+    pipes = [];
+
+    game.score = 0;
+    game.level = 1;
+    game.pipeTimer = 0;
+
+    bird.vy = 0;
+    bird.y = board.clientHeight / 2;
+
+    scoreEl.textContent = "0";
+    levelEl.textContent = "FASE 1";
+  }
+
+  function gameOver() {
+    if (!game.running) return;
+
+    game.running = false;
+
+    sounds.hit.play().catch(()=>{});
+    sounds.music.pause();
+
+    finalScoreEl.textContent = game.score;
+
+    if (game.score > game.highScore) {
+      game.highScore = game.score;
+      localStorage.setItem("flappyHigh", game.highScore);
+    }
+
+    finalHighScoreEl.textContent = game.highScore;
+    highScoreEl.textContent = game.highScore;
+
+    gameOverScreen.style.display = "flex";
+  }
+
+  function togglePause() {
+    if (!game.running) return;
+
+    game.paused = !game.paused;
+    pauseScreen.style.display = game.paused ? "flex" : "none";
+
+    if (!game.paused) {
+      game.lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+  }
+
+  /* ===================== LOOP ===================== */
+  function loop(time) {
+    if (!game.running || game.paused) return;
+
+    const dt = (time - game.lastTime) / 1000;
+    game.lastTime = time;
+
+    updateBird(dt);
+    updatePipes(dt);
+    checkCollisions();
+
+    requestAnimationFrame(loop);
+  }
+
+  /* ===================== BIRD ===================== */
+  function updateBird(dt) {
+    bird.vy += GRAVITY * dt;
+    bird.y += bird.vy * dt;
+
+    if (bird.y < 0) bird.y = 0;
+
+    if (bird.y + bird.h > board.clientHeight) {
+      gameOver();
+      return;
+    }
+
+    birdEl.style.transform =
+      `translateY(${bird.y}px) rotate(${Math.min(bird.vy / 6, 90)}deg)`;
+  }
+
+  function jump() {
+    if (!game.running) {
+      start();
+      bird.vy = JUMP;
+      return;
+    }
+
+    bird.vy = JUMP;
+    sounds.jump.currentTime = 0;
+    sounds.jump.play().catch(()=>{});
+  }
+
+  /* ===================== PIPES ===================== */
+  function updatePipes(dt) {
+    game.pipeTimer += dt;
+
+    if (game.pipeTimer >= PIPE_INTERVAL) {
+      spawnPipe();
+      game.pipeTimer = 0;
+    }
+
+    pipes.forEach(p => {
+      p.x -= LEVELS[game.level].speed * 100 * dt;
+      p.elTop.style.left = p.x + "px";
+      p.elBot.style.left = p.x + "px";
+
+      if (!p.scored && p.x + PIPE_WIDTH < bird.x) {
+        p.scored = true;
+        game.score++;
+        scoreEl.textContent = game.score;
+        sounds.score.play().catch(()=>{});
+
+        if (game.score >= LEVELS[game.level].pass && game.level < 10) {
+          game.level++;
+          levelEl.textContent = `FASE ${game.level}`;
+          sounds.level.play().catch(()=>{});
         }
-    };
+      }
+    });
 
-    // Estado do jogo
-    const state = {
-        gameIsRunning: false,
-        score: 0,
-        highScore: 0,
-        currentLevel: 1,
-        bird: {
-            x: 50,
-            y: 300,
-            width: 40,
-            height: 30,
-            velocity: 0,
-            rotation: 0
-        },
-        pipes: [],
-        lastPipeTime: 0,
-        frameCount: 0,
-        lastTimestamp: 0,
-        animationFrameId: null
-    };
+    pipes = pipes.filter(p => {
+      if (p.x < -PIPE_WIDTH) {
+        p.elTop.remove();
+        p.elBot.remove();
+        return false;
+      }
+      return true;
+    });
+  }
 
-    // Elementos do DOM
-    const elements = {
-        gameBoard: document.getElementById('game-board'),
-        bird: document.getElementById('bird'),
-        scoreDisplay: document.getElementById('score-display'),
-        levelDisplay: document.getElementById('level-display'),
-        gameOverDisplay: document.getElementById('game-over'),
-        startScreen: document.getElementById('start-screen'),
-        phaseElements: document.querySelectorAll('.phase'),
-        highScoreDisplay: document.createElement('div')
-    };
+  function spawnPipe() {
+    const gap = LEVELS[game.level].gap;
+    const min = 50;
+    const max = board.clientHeight - gap - 150;
+    const topH = Math.random() * (max - min) + min;
 
-    // Inicialização
-    function init() {
-        // Configurar high score display
-        elements.highScoreDisplay.id = 'high-score-display';
-        elements.highScoreDisplay.style.position = 'absolute';
-        elements.highScoreDisplay.style.top = '120px';
-        elements.highScoreDisplay.style.left = '0';
-        elements.highScoreDisplay.style.right = '0';
-        elements.highScoreDisplay.style.textAlign = 'center';
-        elements.highScoreDisplay.style.fontSize = '14px';
-        elements.highScoreDisplay.style.color = 'white';
-        elements.highScoreDisplay.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
-        elements.highScoreDisplay.style.zIndex = '5';
-        elements.gameBoard.appendChild(elements.highScoreDisplay);
+    const top = document.createElement("div");
+    const bot = document.createElement("div");
 
-        // Carregar high score do localStorage
-        state.highScore = localStorage.getItem('flappyBirdHighScore') || 0;
-        updateHighScoreDisplay();
+    top.className = "pipe pipe-top";
+    bot.className = "pipe pipe-bottom";
 
-        // Event listeners
-        document.addEventListener('keydown', handleKeyDown);
-        elements.gameBoard.addEventListener('click', handleClick);
-        
-        // Seleção de fases
-        elements.phaseElements.forEach(phase => {
-            phase.addEventListener('click', () => {
-                if (!state.gameIsRunning) {
-                    selectLevel(parseInt(phase.dataset.level));
-                }
-            });
-        });
+    top.style.height = topH + "px";
+    bot.style.height = board.clientHeight - topH - gap + "px";
 
-        // Selecionar primeira fase por padrão
-        selectLevel(1);
-    }
+    top.style.left = board.clientWidth + "px";
+    bot.style.left = board.clientWidth + "px";
 
-    // Selecionar nível
-    function selectLevel(level) {
-        state.currentLevel = level;
-        const levelConfig = config.levels[level];
-        config.pipeSpeed = levelConfig.speed;
-        config.pipeGap = levelConfig.gap;
-        
-        elements.levelDisplay.textContent = `Fase ${level}`;
-        
-        // Atualizar UI de seleção de fase
-        elements.phaseElements.forEach(el => {
-            el.classList.toggle('active', parseInt(el.dataset.level) === level);
-        });
-    }
+    board.appendChild(top);
+    board.appendChild(bot);
 
-    // Iniciar jogo
-    function startGame() {
-        // Resetar estado
-        state.gameIsRunning = true;
-        state.score = 0;
-        state.frameCount = 0;
-        state.lastPipeTime = 0;
-        state.bird = {
-            x: 50,
-            y: 300,
-            width: 40,
-            height: 30,
-            velocity: 0,
-            rotation: 0
-        };
-        state.pipes = [];
-        
-        // Limpar canos existentes
-        document.querySelectorAll('.pipe').forEach(pipe => pipe.remove());
-        
-        // Atualizar UI
-        elements.scoreDisplay.textContent = '0';
-        elements.gameOverDisplay.style.display = 'none';
-        elements.startScreen.style.display = 'none';
-        
-        // Iniciar game loop
-        state.lastTimestamp = performance.now();
-        if (state.animationFrameId) {
-            cancelAnimationFrame(state.animationFrameId);
+    pipes.push({
+      x: board.clientWidth,
+      elTop: top,
+      elBot: bot,
+      scored: false,
+      topH
+    });
+  }
+
+  /* ===================== COLLISION ===================== */
+  function checkCollisions() {
+    const bx = bird.x + 10;
+    const by = bird.y + 10;
+    const bw = bird.w - 20;
+    const bh = bird.h - 20;
+
+    pipes.forEach(p => {
+      if (bx < p.x + PIPE_WIDTH && bx + bw > p.x) {
+        if (by < p.topH || by + bh > p.topH + LEVELS[game.level].gap) {
+          gameOver();
         }
-        gameLoop();
-    }
+      }
+    });
+  }
 
-    // Game loop otimizado
-    function gameLoop(timestamp = 0) {
-        if (!state.gameIsRunning) return;
-        
-        // Calcular delta time para suavizar animação
-        const deltaTime = timestamp - state.lastTimestamp;
-        state.lastTimestamp = timestamp;
-        
-        // Atualizar estado do jogo
-        updateBird(deltaTime);
-        updatePipes(deltaTime);
-        checkCollisions();
-        checkLevelUp();
-        
-        // Renderizar
-        render();
-        
-        // Continuar o loop
-        state.animationFrameId = requestAnimationFrame(gameLoop);
-    }
+  /* ===================== INPUT ===================== */
+  function onKey(e) {
+    if (e.code === "Space") jump();
+    if (e.code === "KeyP") togglePause();
+    if (e.code === "KeyR") start();
+  }
 
-    // Atualizar pássaro
-    function updateBird(deltaTime) {
-        // Aplicar gravidade com delta time
-        state.bird.velocity += config.gravity * (deltaTime / 16);
-        state.bird.y += state.bird.velocity * (deltaTime / 16);
-        
-        // Limitar posição
-        if (state.bird.y < 0) {
-            state.bird.y = 0;
-            state.bird.velocity = 0;
-        }
-        
-        if (state.bird.y > config.height - state.bird.height) {
-            state.bird.y = config.height - state.bird.height;
-            gameOver();
-        }
-        
-        // Calcular rotação
-        state.bird.rotation = Math.min(Math.max(state.bird.velocity * 5, -30), 30);
-    }
-
-    // Atualizar canos
-    function updatePipes(deltaTime) {
-        // Criar novos canos
-        state.frameCount++;
-        if (state.frameCount - state.lastPipeTime >= 120) { // ~2 segundos
-            createPipe();
-            state.lastPipeTime = state.frameCount;
-        }
-        
-        // Mover e verificar canos
-        for (let i = state.pipes.length - 1; i >= 0; i--) {
-            const pipe = state.pipes[i];
-            
-            // Mover cano
-            pipe.x -= config.pipeSpeed * (deltaTime / 16);
-            pipe.element.style.left = `${pipe.x}px`;
-            pipe.topElement.style.left = `${pipe.x}px`;
-            
-            // Verificar se passou pelo cano
-            if (!pipe.passed && pipe.x + config.pipeWidth < state.bird.x) {
-                pipe.passed = true;
-                state.score++;
-                elements.scoreDisplay.textContent = state.score;
-                playScoreSound();
-            }
-            
-            // Remover canos fora da tela
-            if (pipe.x < -config.pipeWidth) {
-                pipe.element.remove();
-                pipe.topElement.remove();
-                state.pipes.splice(i, 1);
-            }
-        }
-    }
-
-    // Criar cano
-    function createPipe() {
-        const minHeight = 50;
-        const maxHeight = config.height - config.pipeGap - minHeight;
-        const pipeHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-        
-        // Cano inferior
-        const pipeElement = document.createElement('div');
-        pipeElement.className = 'pipe pipe-bottom';
-        pipeElement.style.height = `${config.height - pipeHeight - config.pipeGap}px`;
-        pipeElement.style.width = `${config.pipeWidth}px`;
-        pipeElement.style.left = `${config.width}px`;
-        elements.gameBoard.appendChild(pipeElement);
-        
-        // Cano superior
-        const pipeTopElement = document.createElement('div');
-        pipeTopElement.className = 'pipe pipe-top';
-        pipeTopElement.style.height = `${pipeHeight}px`;
-        pipeTopElement.style.width = `${config.pipeWidth}px`;
-        pipeTopElement.style.left = `${config.width}px`;
-        elements.gameBoard.appendChild(pipeTopElement);
-        
-        state.pipes.push({
-            element: pipeElement,
-            topElement: pipeTopElement,
-            x: config.width,
-            height: pipeHeight,
-            passed: false
-        });
-    }
-
-    // Verificar colisões
-    function checkCollisions() {
-        const bird = state.bird;
-        
-        // Verificar colisão com cada cano
-        for (const pipe of state.pipes) {
-            // Cano superior
-            if (
-                bird.x + bird.width > pipe.x &&
-                bird.x < pipe.x + config.pipeWidth &&
-                bird.y < pipe.height
-            ) {
-                gameOver();
-                return;
-            }
-            
-            // Cano inferior
-            if (
-                bird.x + bird.width > pipe.x &&
-                bird.x < pipe.x + config.pipeWidth &&
-                bird.y + bird.height > pipe.height + config.pipeGap
-            ) {
-                gameOver();
-                return;
-            }
-        }
-    }
-
-    // Verificar subida de nível
-    function checkLevelUp() {
-        const currentLevelConfig = config.levels[state.currentLevel];
-        
-        if (state.score >= currentLevelConfig.scoreToPass && state.currentLevel < 10) {
-            state.currentLevel++;
-            const newLevelConfig = config.levels[state.currentLevel];
-            config.pipeSpeed = newLevelConfig.speed;
-            config.pipeGap = newLevelConfig.gap;
-            
-            elements.levelDisplay.textContent = `Fase ${state.currentLevel}`;
-            selectLevel(state.currentLevel);
-            playLevelUpSound();
-        }
-    }
-
-    // Renderizar elementos
-    function render() {
-        // Atualizar posição e rotação do pássaro
-        elements.bird.style.transform = `translateY(${state.bird.y}px) rotate(${state.bird.rotation}deg)`;
-    }
-
-    // Game over
-    function gameOver() {
-        state.gameIsRunning = false;
-        
-        // Atualizar high score
-        if (state.score > state.highScore) {
-            state.highScore = state.score;
-            localStorage.setItem('flappyBirdHighScore', state.highScore);
-            updateHighScoreDisplay();
-        }
-        
-        // Mostrar tela de game over
-        elements.gameOverDisplay.style.display = 'flex';
-        cancelAnimationFrame(state.animationFrameId);
-        playCollisionSound();
-    }
-
-    // Atualizar high score display
-    function updateHighScoreDisplay() {
-        elements.highScoreDisplay.textContent = `Recorde: ${state.highScore}`;
-    }
-
-    // Pular
-    function jump() {
-        if (!state.gameIsRunning) {
-            startGame();
-            return;
-        }
-        
-        state.bird.velocity = config.jumpForce;
-        elements.bird.classList.add('flap-animation');
-        setTimeout(() => {
-            elements.bird.classList.remove('flap-animation');
-        }, 300);
-    }
-
-    // Handlers de eventos
-    function handleKeyDown(e) {
-        if (e.code === 'Space') {
-            e.preventDefault();
-            jump();
-        }
-    }
-
-    function handleClick() {
-        jump();
-    }
-
-    // Efeitos sonoros
-    function playScoreSound() {
-        // Implementação simplificada - na prática use arquivos de áudio
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        oscillator.type = 'sine';
-        oscillator.frequency.value = 800;
-        gainNode.gain.value = 0.1;
-        
-        oscillator.start();
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        oscillator.stop(audioCtx.currentTime + 0.1);
-    }
-
-    function playCollisionSound() {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.value = 150;
-        gainNode.gain.value = 0.2;
-        
-        oscillator.start();
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-        oscillator.stop(audioCtx.currentTime + 0.5);
-    }
-
-    function playLevelUpSound() {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
-        gainNode.gain.value = 0.1;
-        
-        oscillator.start();
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-        oscillator.stop(audioCtx.currentTime + 0.3);
-    }
-
-    // Inicializar o jogo
-    init();
+  init();
 });
